@@ -1,7 +1,7 @@
-select count(*) from st_cliente;
+select count(*) from tb_cliente;
 -- 100
-select count(*) from st_empresa;
--- 50
+select count(*) from tb_empresa;
+-- 52
 select count(*) from tb_mesa;
 -- 10000
 select count(*) from tb_situacao_pedido;

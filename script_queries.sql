@@ -110,5 +110,83 @@ top1_mais_convidados_por_ano;
 
 -- Qual a empresa que tem mais funcionarios como clientes do restaurante;
 
+SELECT 
+    e.nome_empresa,
+    COUNT(e.nome_funcionario_empresa) AS total_funcionarios
+FROM 
+    tb_empresa e
+INNER JOIN 
+    tb_cliente c ON e.id_cliente = c.id_cliente
+GROUP BY 
+    e.nome_empresa
+HAVING 
+    COUNT(e.nome_funcionario_empresa) = (
+        SELECT 
+            COUNT(nome_funcionario_empresa)
+        FROM 
+            tb_empresa
+        INNER JOIN 
+            tb_cliente ON tb_empresa.id_cliente = tb_cliente.id_cliente
+        GROUP BY 
+            nome_empresa
+        ORDER BY 
+            COUNT(nome_funcionario_empresa) DESC
+        LIMIT 1
+    );
 
 -- Qual empresa que tem mais funcionarios que consomem sobremesas no restaurante por ano;
+SELECT
+    e.nome_empresa,
+    YEAR(m.data_hora_entrada) AS ano,
+    COUNT(DISTINCT e.nome_funcionario_empresa) AS total_funcionarios_sobremesa
+FROM
+    tb_empresa e
+INNER JOIN
+    tb_cliente c ON e.id_cliente = c.id_cliente
+INNER JOIN
+    tb_mesa m ON c.id_cliente = m.id_cliente
+INNER JOIN
+    tb_pedido p ON m.codigo_mesa = p.codigo_mesa
+INNER JOIN
+    tb_prato pr ON p.codigo_prato = pr.codigo_prato
+INNER JOIN
+    tb_tipo_prato tp ON pr.codigo_tipo_prato = tp.codigo_tipo_prato
+WHERE
+    tp.nome_tipo_prato = 'sobremesa'
+GROUP BY
+    e.nome_empresa,
+    YEAR(m.data_hora_entrada)
+HAVING
+    COUNT(DISTINCT e.nome_funcionario_empresa) = (
+        SELECT
+            MAX(total_funcionarios_sobremesa)
+        FROM
+            (
+                SELECT
+                    COUNT(DISTINCT e.nome_funcionario_empresa) AS total_funcionarios_sobremesa
+                FROM
+                    tb_empresa e
+                INNER JOIN
+                    tb_cliente c ON e.id_cliente = c.id_cliente
+                INNER JOIN
+                    tb_mesa m ON c.id_cliente = m.id_cliente
+                INNER JOIN
+                    tb_pedido p ON m.codigo_mesa = p.codigo_mesa
+                INNER JOIN
+                    tb_prato pr ON p.codigo_prato = pr.codigo_prato
+                INNER JOIN
+                    tb_tipo_prato tp ON pr.codigo_tipo_prato = tp.codigo_tipo_prato
+                WHERE
+                    tp.nome_tipo_prato = 'sobremesa'
+                GROUP BY
+                    e.nome_empresa,
+                    YEAR(m.data_hora_entrada)
+            ) AS subquery
+    )
+ORDER BY
+    ano,
+    nome_empresa;
+
+
+
+

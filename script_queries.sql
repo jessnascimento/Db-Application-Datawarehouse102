@@ -109,84 +109,65 @@ limit 1
 top1_mais_convidados_por_ano;
 
 -- Qual a empresa que tem mais funcionarios como clientes do restaurante;
-
 SELECT 
     e.nome_empresa,
-    COUNT(e.nome_funcionario_empresa) AS total_funcionarios
+    COUNT(*) AS numero_funcionarios_clientes
 FROM 
-    tb_empresa e
-INNER JOIN 
-    tb_cliente c ON e.id_cliente = c.id_cliente
+    tb_cliente c
+JOIN 
+    tb_beneficio b ON c.email_cliente = b.email_funcionario
+JOIN 
+    tb_empresa e ON b.cod_empresa = e.cod_empresa
 GROUP BY 
     e.nome_empresa
-HAVING 
-    COUNT(e.nome_funcionario_empresa) = (
-        SELECT 
-            COUNT(nome_funcionario_empresa)
-        FROM 
-            tb_empresa
-        INNER JOIN 
-            tb_cliente ON tb_empresa.id_cliente = tb_cliente.id_cliente
-        GROUP BY 
-            nome_empresa
-        ORDER BY 
-            COUNT(nome_funcionario_empresa) DESC
-        LIMIT 1
-    );
+ORDER BY 
+    numero_funcionarios_clientes DESC
+LIMIT 1;
+
+
 
 -- Qual empresa que tem mais funcionarios que consomem sobremesas no restaurante por ano;
-SELECT
-    e.nome_empresa,
-    YEAR(m.data_hora_entrada) AS ano,
-    COUNT(DISTINCT e.nome_funcionario_empresa) AS total_funcionarios_sobremesa
-FROM
-    tb_empresa e
-INNER JOIN
-    tb_cliente c ON e.id_cliente = c.id_cliente
-INNER JOIN
-    tb_mesa m ON c.id_cliente = m.id_cliente
-INNER JOIN
-    tb_pedido p ON m.codigo_mesa = p.codigo_mesa
-INNER JOIN
-    tb_prato pr ON p.codigo_prato = pr.codigo_prato
-INNER JOIN
-    tb_tipo_prato tp ON pr.codigo_tipo_prato = tp.codigo_tipo_prato
-WHERE
-    tp.nome_tipo_prato = 'sobremesa'
-GROUP BY
-    e.nome_empresa,
-    YEAR(m.data_hora_entrada)
-HAVING
-    COUNT(DISTINCT e.nome_funcionario_empresa) = (
-        SELECT
-            MAX(total_funcionarios_sobremesa)
-        FROM
-            (
-                SELECT
-                    COUNT(DISTINCT e.nome_funcionario_empresa) AS total_funcionarios_sobremesa
-                FROM
-                    tb_empresa e
-                INNER JOIN
-                    tb_cliente c ON e.id_cliente = c.id_cliente
-                INNER JOIN
-                    tb_mesa m ON c.id_cliente = m.id_cliente
-                INNER JOIN
-                    tb_pedido p ON m.codigo_mesa = p.codigo_mesa
-                INNER JOIN
-                    tb_prato pr ON p.codigo_prato = pr.codigo_prato
-                INNER JOIN
-                    tb_tipo_prato tp ON pr.codigo_tipo_prato = tp.codigo_tipo_prato
-                WHERE
-                    tp.nome_tipo_prato = 'sobremesa'
-                GROUP BY
-                    e.nome_empresa,
-                    YEAR(m.data_hora_entrada)
-            ) AS subquery
-    )
-ORDER BY
-    ano,
-    nome_empresa;
 
-
-
+WITH ConsumoSobremesaPorAno AS (
+    SELECT 
+        YEAR(m.data_hora_entrada) AS ano,
+        e.nome_empresa,
+        COUNT(DISTINCT b.cod_funcionario) AS numero_funcionarios_sobremesa
+    FROM 
+        tb_cliente c
+    JOIN 
+        tb_beneficio b ON c.email_cliente = b.email_funcionario
+    JOIN 
+        tb_empresa e ON b.cod_empresa = e.cod_empresa
+    JOIN 
+        tb_mesa m ON c.id_cliente = m.id_cliente
+    JOIN 
+        tb_pedido p ON m.codigo_mesa = p.codigo_mesa
+    JOIN 
+        tb_tipo_prato tp ON p.codigo_prato = tp.codigo_tipo_prato
+    WHERE 
+        tp.nome_tipo_prato = 'Sobremesa' AND
+        YEAR(m.data_hora_entrada) IN (2022, 2023, 2024)
+    GROUP BY 
+        ano, e.nome_empresa
+),
+MaxConsumoPorAno AS (
+    SELECT 
+        ano,
+        MAX(numero_funcionarios_sobremesa) AS max_funcionarios_sobremesa
+    FROM 
+        ConsumoSobremesaPorAno
+    GROUP BY 
+        ano
+)
+SELECT 
+    c.ano,
+    c.nome_empresa,
+    c.numero_funcionarios_sobremesa
+FROM 
+    ConsumoSobremesaPorAno c
+JOIN 
+    MaxConsumoPorAno m ON c.ano = m.ano AND c.numero_funcionarios_sobremesa = m.max_funcionarios_sobremesa
+ORDER BY 
+    c.ano, c.nome_empresa;
 
